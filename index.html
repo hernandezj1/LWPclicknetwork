@@ -88,9 +88,27 @@ d3.json("network.json").then(data => {
 
   const simulation = d3.forceSimulation(data.nodes)
     .force("link", d3.forceLink(data.links).id(d => d.id).distance(120))
-    .force("charge", d3.forceManyBody().strength(-100)) // 👈 tuned
+    .force("charge", d3.forceManyBody().strength(-100))
     .force("center", d3.forceCenter(width / 2, height / 2))
     .force("collision", d3.forceCollide().radius(10));
+
+  // DRAG FUNCTIONS
+  function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+
+  function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
 
   const link = svg.append("g")
     .selectAll("line")
@@ -104,7 +122,13 @@ d3.json("network.json").then(data => {
     .join("circle")
     .attr("class", "node")
     .attr("r", 6)
-    .attr("fill", "steelblue");
+    .attr("fill", "steelblue")
+    .call(
+      d3.drag()
+        .on("start", dragstarted)
+        .on("drag", dragged)
+        .on("end", dragended)
+    );
 
   const label = svg.append("g")
     .selectAll("text")
@@ -113,7 +137,7 @@ d3.json("network.json").then(data => {
     .attr("class", "label")
     .text(d => d.id);
 
-  // ✅ HOVER (fixed)
+  // HOVER
   node.on("mouseover", function(event, d) {
     d3.select(this).attr("fill", "orange");
 
@@ -128,7 +152,7 @@ d3.json("network.json").then(data => {
     label.style("opacity", 0);
   });
 
-  // ✅ CLICK + SPINNER
+  // CLICK + SPINNER
   node.on("click", function(event, d) {
 
     node.attr("fill", "steelblue");
@@ -139,7 +163,7 @@ d3.json("network.json").then(data => {
     setTimeout(() => {
       window.open(d.url, "_blank");
       document.getElementById("overlay").style.display = "none";
-    }, 1200); // 1 second delay
+    }, 1200);
   });
 
   simulation.on("tick", () => {
